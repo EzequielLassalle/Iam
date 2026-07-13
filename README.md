@@ -1,7 +1,7 @@
 # Simulador de AWS IAM
 
 Reimplementación en Python del motor de autorización de AWS IAM, sobre una cuenta
-simulada, para razonar sobre permisos y auditarlos sin depender de una cuenta real.
+simulada, para trabajar sobre permisos y auditarlos sin depender de una cuenta real.
 
 Sin dependencias externas: solo la librería estándar.
 
