@@ -1,0 +1,384 @@
+{
+  "Events": [
+    {
+      "EventName": "GetObject",
+      "EventTime": "2026-07-12T21:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "temp-consultor",
+        "arn": "arn:aws:iam::111111111111:user/temp-consultor"
+      },
+      "ErrorCode": "AccessDenied",
+      "Resources": [
+        {
+          "ResourceType": "AWS::S3::Object",
+          "ResourceName": "banco-backups/nomina.xlsx"
+        }
+      ]
+    },
+    {
+      "EventName": "GetObject",
+      "EventTime": "2026-07-12T20:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "temp-consultor",
+        "arn": "arn:aws:iam::111111111111:user/temp-consultor"
+      },
+      "ErrorCode": "AccessDenied",
+      "Resources": [
+        {
+          "ResourceType": "AWS::S3::Object",
+          "ResourceName": "banco-backups/nomina.xlsx"
+        }
+      ]
+    },
+    {
+      "EventName": "GetObject",
+      "EventTime": "2026-07-12T19:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "temp-consultor",
+        "arn": "arn:aws:iam::111111111111:user/temp-consultor"
+      },
+      "ErrorCode": "AccessDenied",
+      "Resources": [
+        {
+          "ResourceType": "AWS::S3::Object",
+          "ResourceName": "banco-backups/nomina.xlsx"
+        }
+      ]
+    },
+    {
+      "EventName": "ConsoleLogin",
+      "EventTime": "2026-07-12T18:24:44+00:00",
+      "EventSource": "signin.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "Root",
+        "userName": "root",
+        "arn": "arn:aws:iam::111111111111:user/root"
+      }
+    },
+    {
+      "EventName": "GetObject",
+      "EventTime": "2026-07-12T18:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "temp-consultor",
+        "arn": "arn:aws:iam::111111111111:user/temp-consultor"
+      },
+      "ErrorCode": "AccessDenied",
+      "Resources": [
+        {
+          "ResourceType": "AWS::S3::Object",
+          "ResourceName": "banco-backups/nomina.xlsx"
+        }
+      ]
+    },
+    {
+      "EventName": "GetObject",
+      "EventTime": "2026-07-12T17:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "temp-consultor",
+        "arn": "arn:aws:iam::111111111111:user/temp-consultor"
+      },
+      "ErrorCode": "AccessDenied",
+      "Resources": [
+        {
+          "ResourceType": "AWS::S3::Object",
+          "ResourceName": "banco-backups/nomina.xlsx"
+        }
+      ]
+    },
+    {
+      "EventName": "GetObject",
+      "EventTime": "2026-07-12T16:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "temp-consultor",
+        "arn": "arn:aws:iam::111111111111:user/temp-consultor"
+      },
+      "ErrorCode": "AccessDenied",
+      "Resources": [
+        {
+          "ResourceType": "AWS::S3::Object",
+          "ResourceName": "banco-backups/nomina.xlsx"
+        }
+      ]
+    },
+    {
+      "EventName": "StopLogging",
+      "EventTime": "2026-07-12T16:24:44+00:00",
+      "EventSource": "cloudtrail.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "jadmin",
+        "arn": "arn:aws:iam::111111111111:user/jadmin"
+      },
+      "ErrorCode": "AccessDenied"
+    },
+    {
+      "EventName": "DeleteTrail",
+      "EventTime": "2026-07-12T16:24:44+00:00",
+      "EventSource": "cloudtrail.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "45.133.1.90",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "jadmin",
+        "arn": "arn:aws:iam::111111111111:user/jadmin"
+      },
+      "ErrorCode": "AccessDenied"
+    },
+    {
+      "EventName": "CreateUser",
+      "EventTime": "2026-07-12T15:24:44+00:00",
+      "EventSource": "iam.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.5",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "jadmin",
+        "arn": "arn:aws:iam::111111111111:user/jadmin"
+      }
+    },
+    {
+      "EventName": "AttachUserPolicy",
+      "EventTime": "2026-07-12T15:24:44+00:00",
+      "EventSource": "iam.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.5",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "jadmin",
+        "arn": "arn:aws:iam::111111111111:user/jadmin"
+      }
+    },
+    {
+      "EventName": "CreateAccessKey",
+      "EventTime": "2026-07-12T15:24:44+00:00",
+      "EventSource": "iam.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.5",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "jadmin",
+        "arn": "arn:aws:iam::111111111111:user/jadmin"
+      }
+    },
+    {
+      "EventName": "ListBucket",
+      "EventTime": "2026-07-12T12:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.2",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "cgomez",
+        "arn": "arn:aws:iam::111111111111:user/cgomez"
+      }
+    },
+    {
+      "EventName": "AssumeRole",
+      "EventTime": "2026-07-11T21:24:44+00:00",
+      "EventSource": "sts.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "10.10.1.20",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "svc-reporting",
+        "arn": "arn:aws:iam::111111111111:user/svc-reporting"
+      }
+    },
+    {
+      "EventName": "AssumeRole",
+      "EventTime": "2026-07-10T21:24:44+00:00",
+      "EventSource": "sts.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "10.10.1.20",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "svc-reporting",
+        "arn": "arn:aws:iam::111111111111:user/svc-reporting"
+      }
+    },
+    {
+      "EventName": "AssumeRole",
+      "EventTime": "2026-07-10T21:24:44+00:00",
+      "EventSource": "sts.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "10.10.1.20",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "svc-reporting",
+        "arn": "arn:aws:iam::111111111111:user/svc-reporting"
+      }
+    },
+    {
+      "EventName": "ListBucket",
+      "EventTime": "2026-07-10T17:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.29",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "cgomez",
+        "arn": "arn:aws:iam::111111111111:user/cgomez"
+      }
+    },
+    {
+      "EventName": "GetObject",
+      "EventTime": "2026-07-10T10:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.32",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "cgomez",
+        "arn": "arn:aws:iam::111111111111:user/cgomez"
+      }
+    },
+    {
+      "EventName": "DescribeInstances",
+      "EventTime": "2026-07-10T04:24:44+00:00",
+      "EventSource": "ec2.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.36",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "cgomez",
+        "arn": "arn:aws:iam::111111111111:user/cgomez"
+      }
+    },
+    {
+      "EventName": "AssumeRole",
+      "EventTime": "2026-07-09T21:24:44+00:00",
+      "EventSource": "sts.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "10.10.1.20",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "svc-reporting",
+        "arn": "arn:aws:iam::111111111111:user/svc-reporting"
+      }
+    },
+    {
+      "EventName": "DescribeInstances",
+      "EventTime": "2026-07-09T00:24:44+00:00",
+      "EventSource": "ec2.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.33",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "cgomez",
+        "arn": "arn:aws:iam::111111111111:user/cgomez"
+      }
+    },
+    {
+      "EventName": "DescribeInstances",
+      "EventTime": "2026-07-08T07:24:44+00:00",
+      "EventSource": "ec2.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.41",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "mlopez",
+        "arn": "arn:aws:iam::111111111111:user/mlopez"
+      }
+    },
+    {
+      "EventName": "DescribeInstances",
+      "EventTime": "2026-07-08T00:24:44+00:00",
+      "EventSource": "ec2.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.46",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "mlopez",
+        "arn": "arn:aws:iam::111111111111:user/mlopez"
+      }
+    },
+    {
+      "EventName": "DescribeInstances",
+      "EventTime": "2026-07-07T09:24:44+00:00",
+      "EventSource": "ec2.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.32",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "cgomez",
+        "arn": "arn:aws:iam::111111111111:user/cgomez"
+      }
+    },
+    {
+      "EventName": "GetObject",
+      "EventTime": "2026-07-07T07:24:44+00:00",
+      "EventSource": "s3.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.47",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "mlopez",
+        "arn": "arn:aws:iam::111111111111:user/mlopez"
+      }
+    },
+    {
+      "EventName": "DescribeInstances",
+      "EventTime": "2026-07-07T00:24:44+00:00",
+      "EventSource": "ec2.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.21",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "cgomez",
+        "arn": "arn:aws:iam::111111111111:user/cgomez"
+      }
+    },
+    {
+      "EventName": "DescribeInstances",
+      "EventTime": "2026-07-06T12:24:44+00:00",
+      "EventSource": "ec2.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.58",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "mlopez",
+        "arn": "arn:aws:iam::111111111111:user/mlopez"
+      }
+    },
+    {
+      "EventName": "DescribeInstances",
+      "EventTime": "2026-07-04T16:24:44+00:00",
+      "EventSource": "ec2.amazonaws.com",
+      "AwsRegion": "us-east-1",
+      "SourceIPAddress": "200.45.10.16",
+      "UserIdentity": {
+        "type": "IAMUser",
+        "userName": "mlopez",
+        "arn": "arn:aws:iam::111111111111:user/mlopez"
+      }
+    }
+  ]
+}

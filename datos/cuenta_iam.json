@@ -1,0 +1,273 @@
+{
+  "AccountId": "111111111111",
+  "GeneradoEl": "2026-07-12T21:24:44+00:00",
+  "RedesCorporativas": [
+    "200.45.10.0/24",
+    "10.10.0.0/16"
+  ],
+  "Organization": {
+    "SCPs": {
+      "GuardrailBase": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "PermitirTodoLoDemas",
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "*"
+          },
+          {
+            "Sid": "ProhibirTocarCloudTrail",
+            "Effect": "Deny",
+            "Action": [
+              "cloudtrail:StopLogging",
+              "cloudtrail:DeleteTrail"
+            ],
+            "Resource": "*"
+          }
+        ]
+      }
+    }
+  },
+  "Users": [
+    {
+      "UserName": "mlopez",
+      "Arn": "arn:aws:iam::111111111111:user/mlopez",
+      "Groups": [
+        "Creditos"
+      ],
+      "MFAEnabled": true,
+      "Tags": {
+        "Proyecto": "Creditos",
+        "Sucursal": "Rosario"
+      },
+      "AttachedPolicies": [
+        "CreditosABAC"
+      ],
+      "PermissionBoundary": null,
+      "AccessKeys": [
+        {
+          "AccessKeyId": "AKIADLSSW5D6H6VVTP3U",
+          "Status": "Active",
+          "CreateDate": "2026-03-14T21:24:44+00:00",
+          "LastUsedDate": "2026-07-10T21:24:44+00:00"
+        }
+      ],
+      "PasswordLastUsed": "2026-07-11T21:24:44+00:00"
+    },
+    {
+      "UserName": "cgomez",
+      "Arn": "arn:aws:iam::111111111111:user/cgomez",
+      "Groups": [
+        "Creditos"
+      ],
+      "MFAEnabled": true,
+      "Tags": {
+        "Proyecto": "Creditos",
+        "Sucursal": "Cordoba"
+      },
+      "AttachedPolicies": [],
+      "PermissionBoundary": null,
+      "AccessKeys": [
+        {
+          "AccessKeyId": "AKIAT4Z22R22UQHAVCDK",
+          "Status": "Active",
+          "CreateDate": "2026-06-12T21:24:44+00:00",
+          "LastUsedDate": "2026-07-07T21:24:44+00:00"
+        }
+      ],
+      "PasswordLastUsed": "2026-07-09T21:24:44+00:00"
+    },
+    {
+      "UserName": "svc-reporting",
+      "Arn": "arn:aws:iam::111111111111:user/svc-reporting",
+      "Groups": [
+        "ServicioLectura"
+      ],
+      "MFAEnabled": false,
+      "Tags": {
+        "Proyecto": "Plataforma",
+        "Tipo": "servicio"
+      },
+      "AttachedPolicies": [],
+      "PermissionBoundary": "BoundaryS3ReadOnly",
+      "AccessKeys": [
+        {
+          "AccessKeyId": "AKIA4DQA46XRXLGNJM7M",
+          "Status": "Active",
+          "CreateDate": "2025-05-08T21:24:44+00:00",
+          "LastUsedDate": "2026-07-11T21:24:44+00:00"
+        },
+        {
+          "AccessKeyId": "AKIA3NZSWCZLCTTKKQE6",
+          "Status": "Active",
+          "CreateDate": "2025-05-08T21:24:44+00:00",
+          "LastUsedDate": null
+        }
+      ],
+      "PasswordLastUsed": null
+    },
+    {
+      "UserName": "jadmin",
+      "Arn": "arn:aws:iam::111111111111:user/jadmin",
+      "Groups": [
+        "Administradores"
+      ],
+      "MFAEnabled": false,
+      "Tags": {
+        "Proyecto": "IT"
+      },
+      "AttachedPolicies": [],
+      "PermissionBoundary": null,
+      "AccessKeys": [
+        {
+          "AccessKeyId": "AKIAWYYUKA5YMMQPCN6U",
+          "Status": "Active",
+          "CreateDate": "2025-12-24T21:24:44+00:00",
+          "LastUsedDate": "2026-04-13T21:24:44+00:00"
+        }
+      ],
+      "PasswordLastUsed": "2026-04-28T21:24:44+00:00"
+    },
+    {
+      "UserName": "temp-consultor",
+      "Arn": "arn:aws:iam::111111111111:user/temp-consultor",
+      "Groups": [],
+      "MFAEnabled": false,
+      "Tags": {
+        "Proyecto": "Seguros",
+        "Tipo": "contratista"
+      },
+      "AttachedPolicies": [
+        "S3ReadOnlyBackups"
+      ],
+      "PermissionBoundary": null,
+      "AccessKeys": [
+        {
+          "AccessKeyId": "AKIATR5DPS325V6RN7SJ",
+          "Status": "Active",
+          "CreateDate": "2025-11-04T21:24:44+00:00",
+          "LastUsedDate": "2026-01-13T21:24:44+00:00"
+        }
+      ],
+      "PasswordLastUsed": "2026-01-13T21:24:44+00:00"
+    }
+  ],
+  "Groups": [
+    {
+      "GroupName": "Creditos",
+      "AttachedPolicies": [
+        "S3ReadOnlyBackups"
+      ]
+    },
+    {
+      "GroupName": "Administradores",
+      "AttachedPolicies": [
+        "AdministratorAccess"
+      ]
+    },
+    {
+      "GroupName": "ServicioLectura",
+      "AttachedPolicies": [
+        "S3ReadOnlyBackups"
+      ]
+    }
+  ],
+  "ManagedPolicies": {
+    "AdministratorAccess": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": "*",
+          "Resource": "*"
+        }
+      ]
+    },
+    "S3ReadOnlyBackups": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "LecturaBackups",
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:ListBucket"
+          ],
+          "Resource": [
+            "arn:aws:s3:::banco-backups",
+            "arn:aws:s3:::banco-backups/*"
+          ]
+        }
+      ]
+    },
+    "CreditosABAC": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "EC2SoloDeMiProyecto",
+          "Effect": "Allow",
+          "Action": [
+            "ec2:StartInstances",
+            "ec2:StopInstances",
+            "ec2:DescribeInstances"
+          ],
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:ResourceTag/Proyecto": "${aws:PrincipalTag/Proyecto}"
+            }
+          }
+        }
+      ]
+    },
+    "NegarSinMFA": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "NegarTodoSinMFA",
+          "Effect": "Deny",
+          "Action": "*",
+          "Resource": "*",
+          "Condition": {
+            "Bool": {
+              "aws:MultiFactorAuthPresent": "false"
+            }
+          }
+        }
+      ]
+    },
+    "BoundaryS3ReadOnly": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "TechoS3YReadOnly",
+          "Effect": "Allow",
+          "Action": [
+            "s3:*",
+            "ec2:Describe*",
+            "iam:Get*",
+            "iam:List*"
+          ],
+          "Resource": "*"
+        }
+      ]
+    }
+  },
+  "ResourcePolicies": {
+    "arn:aws:s3:::banco-backups": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "PermitirALaCuentaDeAuditoria",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::222222222222:root"
+          },
+          "Action": "s3:GetObject",
+          "Resource": "arn:aws:s3:::banco-backups/*"
+        }
+      ]
+    }
+  }
+}
