@@ -23,7 +23,7 @@ import sys
 
 from contexto import (cargar_cuenta, cuenta_modificada, peticion,
                       policies_de_recurso, policies_de_usuario)
-from motor_iam import evaluar
+from motor_iam import evaluar, evaluar_condiciones, interpolar
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -61,20 +61,105 @@ def construir(cuenta: dict, usuario: str, accion: str, recurso: str, *,
     return pet, capas
 
 
+# Operadores de condicion de IAM, en su lectura natural. El sufijo IfExists se traduce aparte:
+# significa que la condicion se ignora si la clave no viene en la peticion.
+COMPARADORES = {
+    "StringEquals": "==", "StringNotEquals": "!=",
+    "StringEqualsIgnoreCase": "== (sin distinguir mayusculas)",
+    "StringLike": "coincide con", "StringNotLike": "no coincide con",
+    "NumericEquals": "==", "NumericNotEquals": "!=",
+    "NumericLessThan": "<", "NumericGreaterThan": ">",
+    "DateLessThan": "es anterior a", "DateGreaterThan": "es posterior a",
+    "Bool": "==",
+    "IpAddress": "esta en", "NotIpAddress": "no esta en",
+    "ArnEquals": "==", "ArnLike": "coincide con", "ArnNotLike": "no coincide con",
+    "Null": "no existe en la peticion es",
+}
+
+
+def _condicion_legible(condicion: dict) -> str:
+    """La Condition de un statement leida como una comparacion: 'clave == valor'."""
+    partes = []
+    for operador, comparaciones in condicion.items():
+        base = operador[:-8] if operador.endswith("IfExists") else operador
+        comparador = COMPARADORES.get(base, base)
+        opcional = ", y si no viene la clave la condicion no aplica" \
+            if operador.endswith("IfExists") else ""
+        for clave, valor in comparaciones.items():
+            if isinstance(valor, list):
+                valor = " o ".join(str(v) for v in valor)
+            partes.append(f"{clave} {comparador} {valor}{opcional}")
+    return ", y ".join(partes)
+
+
 def statements_con_condicion(capas: dict) -> list:
     """
-    Que statements de las capas evaluadas llevan Condition, como 'Policy/Sid'.
+    Los statements de las capas evaluadas que llevan Condition.
 
-    El contexto de la peticion (aws:SourceIp, aws:MultiFactorAuthPresent, aws:PrincipalTag/*)
-    solo pesa si alguna Condition lo mira. Sin condiciones, el contexto es decorado.
+    Devuelve (capa, etiqueta, efecto, condicion_legible) por cada uno. El contexto de la
+    peticion (aws:SourceIp, aws:MultiFactorAuthPresent, aws:PrincipalTag/*) solo pesa si
+    alguna Condition lo mira: sin condiciones, el contexto es decorado.
     """
     hallados = []
-    for clave in ("identity", "boundary", "scp", "resource"):
-        for nombre, doc in capas.get(clave) or []:
+    for capa in ("identity", "boundary", "scp", "resource"):
+        for nombre, doc in capas.get(capa) or []:
             for stmt in doc.get("Statement", []):
-                if stmt.get("Condition"):
-                    hallados.append(f"{nombre}/{stmt.get('Sid', '(sin Sid)')}")
+                cond = stmt.get("Condition")
+                if cond:
+                    etiqueta = f"{nombre}/{stmt.get('Sid', '(sin Sid)')}"
+                    verbo = "permite" if stmt.get("Effect") == "Allow" else "deniega"
+                    hallados.append((capa, etiqueta, verbo, _condicion_legible(cond)))
     return hallados
+
+
+def resolver_condiciones(capas: dict, contexto: dict) -> list:
+    """
+    Cada statement condicionado, resuelto contra el contexto real de la peticion.
+
+    Devuelve (capa, etiqueta, verbo, se_cumple, comparaciones), donde cada comparacion es
+    (clave, valor_en_la_peticion, comparador, valor_esperado_ya_interpolado). Sirve para
+    atribuir el resultado: no alcanza con saber que habia una Condition, hay que ver con que
+    valores se comparo y si dio.
+    """
+    resueltas = []
+    for capa in ("identity", "boundary", "scp", "resource"):
+        for nombre, doc in capas.get(capa) or []:
+            for stmt in doc.get("Statement", []):
+                cond = stmt.get("Condition")
+                if not cond:
+                    continue
+
+                efecto = stmt.get("Effect", "Allow")
+                se_cumple = evaluar_condiciones(cond, contexto, efecto)
+
+                comparaciones = []
+                for operador, bloque in cond.items():
+                    base = operador[:-8] if operador.endswith("IfExists") else operador
+                    comparador = COMPARADORES.get(base, base)
+                    for clave, esperado in bloque.items():
+                        if isinstance(esperado, list):
+                            esperado = " o ".join(str(v) for v in esperado)
+                        esperado = str(esperado)
+                        resuelto = interpolar(esperado, contexto)
+                        # Una policy variable se muestra con su valor al lado: sin eso, el
+                        # lado derecho aparece ya resuelto y se pierde de donde salio.
+                        if resuelto != esperado:
+                            resuelto = f"{esperado} = {resuelto}"
+                        comparaciones.append((
+                            clave,
+                            contexto.get(clave, "(no viene en la peticion)"),
+                            comparador,
+                            resuelto,
+                        ))
+
+                resueltas.append((
+                    capa,
+                    f"{nombre}/{stmt.get('Sid', '(sin Sid)')}",
+                    "permite" if efecto == "Allow" else "deniega",
+                    se_cumple,
+                    comparaciones,
+                ))
+    return resueltas
 
 
 def informe(cuenta: dict, pet: dict, capas: dict) -> str:
@@ -95,8 +180,14 @@ def informe(cuenta: dict, pet: dict, capas: dict) -> str:
     lineas.append("  contexto  : " + ", ".join(f"{k}={v}" for k, v in relevante.items()))
 
     condicionadas = statements_con_condicion(capas)
-    lineas.append("  condicion : " + (", ".join(condicionadas) if condicionadas
-                                      else "ninguna policy evaluada tiene Condition"))
+    if not condicionadas:
+        lineas.append("  condicion : ninguna policy evaluada tiene Condition")
+    else:
+        # Una linea por statement condicionado: el efecto solo se aplica si la condicion se
+        # cumple contra el contexto de la peticion.
+        for i, (capa, etiqueta, verbo, legible) in enumerate(condicionadas):
+            prefijo = "  condicion : " if i == 0 else " " * 14
+            lineas.append(f"{prefijo}en {capa} ({etiqueta}) {verbo} si {legible}")
 
     lineas.append("\nCapas evaluadas")
     identity = ", ".join(f"{n} ({origen.get(n, '?')})" for n, _ in capas.get("identity", []))
@@ -109,6 +200,15 @@ def informe(cuenta: dict, pet: dict, capas: dict) -> str:
     resultado = evaluar(pet, capas)
     lineas.append("\nDecision")
     lineas.append(resultado.explicar())
+
+    # Por que la condicion dio lo que dio: los valores concretos que se compararon. Sin esto,
+    # una decision atada a una Condition queda sin atribuir.
+    for capa, etiqueta, verbo, se_cumple, comparaciones in resolver_condiciones(capas, ctx):
+        estado = "se cumple" if se_cumple else "NO se cumple"
+        lineas.append(f"\n  La condicion de {capa} ({etiqueta}) {estado}, "
+                      f"asi que {'' if se_cumple else 'no '}{verbo}:")
+        for clave, actual, comparador, esperado in comparaciones:
+            lineas.append(f"    {clave} = {actual}   {comparador}   {esperado}")
 
     return "\n".join(lineas)
 

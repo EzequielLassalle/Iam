@@ -61,6 +61,12 @@ entra directo por la 1, sin pasar por el menu).
 Despues de ejecutar una accion y presentar el resultado, volver a ofrecer el submenu en el que
 estaba el usuario: nunca dejarlo sin salida.
 
+**Los submenus van en cuadro, con el mismo marco y ancho que el menu raiz** (76 caracteres por
+linea, marco incluido). Estan dibujados literales mas abajo: copiarlos, no redibujarlos.
+
+**Separar el menu del resultado anterior**: entre la salida del comando y el cuadro va una regla
+horizontal (`---`) y una linea en blanco. Un menu pegado al output se lee como parte del output.
+
 ## Que devuelve cada opcion
 
 **El usuario NO ve la salida de las tool calls.** Solo ve el texto de la respuesta. Toda salida
@@ -126,12 +132,16 @@ pregunta y la traduzco". Cada linea se sostiene sola: nada de "lo mismo, pero...
 ## 1) Consultar
 
 ```
-1.1  Volcado de un usuario: su JSON y el documento de cada policy que le aplica
-1.2  Evaluar una peticion: USUARIO / ACCION / RECURSO
-1.3  Evaluar forzando el contexto: sin MFA, desde otra IP, con otro tag de principal
-1.4  Evaluar en cross-account: el recurso vive en otra cuenta
-
-0)   Volver al menu anterior
+╭──────────────────────────────────────────────────────────────────────────╮
+│  1) CONSULTAR                                                            │
+├──────────────────────────────────────────────────────────────────────────┤
+│  1.1)  Volcado de un usuario: su JSON y el documento de cada policy      │
+│  1.2)  Evaluar una peticion: USUARIO / ACCION / RECURSO                  │
+│  1.3)  Evaluar forzando el contexto: sin MFA, otra IP, otro tag          │
+│  1.4)  Evaluar en cross-account: el recurso vive en otra cuenta          │
+│                                                                          │
+│  0)   Volver al menu anterior                                            │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 | Opcion | Comando |
@@ -144,7 +154,43 @@ pregunta y la traduzco". Cada linea se sostiene sola: nada de "lo mismo, pero...
 En **1.1**, si el usuario no aclara sobre quien, preguntar de cual (o `--json` sin nombre para los
 cinco). La salida trae el bloque del usuario tal como esta en `cuenta_iam.json` y, debajo, el
 documento completo de cada policy agrupado por capa (`identity`, `boundary`, `scp`) con su
-`origen`. Sin `--json` el mismo comando da el reporte en texto.
+`origen`. Sin `--json` el mismo comando da el reporte en texto. Despues de 1.1 se vuelve al
+submenu de Consultar, como siempre.
+
+### Despues de un resultado de 1.2, 1.3 o 1.4
+
+**No** volver al submenu de Consultar. Mostrar este mini menu:
+
+```
+╭──────────────────────────────────────────────────────────────────────────╮
+│  1)   Explicar este resultado                                            │
+│                                                                          │
+│  0)   Volver al menu anterior                                            │
+╰──────────────────────────────────────────────────────────────────────────╯
+```
+
+- `0` -> volver al submenu de Consultar, sin decir nada mas.
+- `1` -> explicar el resultado y **despues** volver al submenu de Consultar.
+
+La explicacion (opcion 1) es la unica parte del skill donde se escribe prosa, y tiene su forma:
+
+- Reconstruir **por que** el motor decidio lo que decidio, siguiendo el orden de decision de IAM
+  (Deny explicito -> Allow explicito -> techos).
+- Ir mostrando los **fragmentos** de JSON que lo explican, no los documentos enteros: el statement
+  que matcheo (o el que se esperaba y no esta), la `Condition` que se cumplio o fallo, el
+  `Principal` de la resource policy. Cada fragmento con su seccion nombrada (`USUARIO`,
+  `IDENTITY`, `SCP`...), igual que en 1.1 pero recortado a lo que decide.
+- Si el resultado depende de algo que **no** esta (deny implicito), decirlo y mostrar la policy
+  donde el permiso deberia haber estado y no esta.
+- Nombrar siempre la policy y el `Sid` concretos. Nada de explicaciones genericas sobre IAM.
+
+**La explicacion termina en la conclusion.** El ultimo parrafo es el que cierra por que dio lo que
+dio, y despues va el submenu. Nada de apendices:
+
+- **No** agregar aclaraciones colaterales ("y ojo con esto otro", "esto induce a error").
+- **No** plantear hipoteticos que no se pidieron ("si tuviera AdministratorAccess seria Allow").
+- **No** conectar con otros escenarios ni con el catalogo.
+- **No** comentar partes de la salida que no participaron en la decision.
 
 `evaluar` imprime las capas que participaron (identity, boundary, scp, resource) y la traza de la
 decision. **Al reportar el resultado, citar la traza**: la gracia no es el Allow/Deny, es que
@@ -173,21 +219,24 @@ Los ARN completos: el bucket es `arn:aws:s3:::banco-backups`, un objeto es
 ## 2) Escenarios
 
 ```
-2.1  Correr los 6 escenarios
-2.2  Correr uno solo (1-6)
-2.3  Modo quiz: predecir el resultado antes de verlo
-
-0)   Volver al menu anterior
+╭──────────────────────────────────────────────────────────────────────────╮
+│  2) ESCENARIOS                                                           │
+├──────────────────────────────────────────────────────────────────────────┤
+│  2.1)  Correr los 6 escenarios                                           │
+│  2.2)  Correr uno solo (1-6)                                             │
+│                                                                          │
+│  0)   Volver al menu anterior                                            │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 | Opcion | Comando |
 |---|---|
 | 2.1 | `main.py escenarios` |
 | 2.2 | `main.py escenarios <N>` |
-| 2.3 | `main.py escenarios -q` |
 
-El quiz es **interactivo y necesita terminal real**: no corre bien desde una tool call. Si lo
-piden, decirle al usuario que lo corra el mismo, prefijando con `!` en el prompt.
+El modo quiz (`main.py escenarios -q`) **no esta en el menu**, por decision del usuario. El comando
+sigue existiendo: es interactivo, necesita terminal real y no corre desde una tool call. Si lo
+pide, decirle que lo corra el mismo prefijando con `!` en el prompt.
 
 Los 6 escenarios, con su resultado: 1) deny implicito -> Deny. 2) Deny explicito de la SCP contra
 un admin -> Deny. 3) la SCP permite pero no otorga -> Deny. 4) boundary como techo -> Deny.
@@ -196,13 +245,17 @@ un admin -> Deny. 3) la SCP permite pero no otorga -> Deny. 4) boundary como tec
 ## 3) Modificar
 
 ```
-3.1  Usuarios: crear, borrar, MFA, tags de principal
-3.2  Policies: crear, borrar, adjuntar, quitar
-3.3  Grupos: crear, altas y bajas de miembros
-3.4  Permission boundary: asignar o quitar
-3.5  Resource policies: asignar o quitar
-
-0)   Volver al menu anterior
+╭──────────────────────────────────────────────────────────────────────────╮
+│  3) MODIFICAR                                                            │
+├──────────────────────────────────────────────────────────────────────────┤
+│  3.1)  Usuarios: crear, borrar, MFA, tags de principal                   │
+│  3.2)  Policies: crear, borrar, adjuntar, quitar                         │
+│  3.3)  Grupos: crear, altas y bajas de miembros                          │
+│  3.4)  Permission boundary: asignar o quitar                             │
+│  3.5)  Resource policies: asignar o quitar                               │
+│                                                                          │
+│  0)   Volver al menu anterior                                            │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 **Nunca editar `datos/cuenta_iam.json` a mano ni con Edit/Write.** Toda mutacion pasa por
@@ -242,12 +295,16 @@ ServicioLectura y temp-consultor, asi que el cambio pega en tres lados. Crear un
 ## 4) Laboratorio
 
 ```
-4.1  Identity policies: agregar o quitar permisos directos
-4.2  Techos: SCP y permission boundary
-4.3  Cross-account y resource policies
-4.4  ABAC: tags de principal y condiciones
-
-0)   Volver al menu anterior
+╭──────────────────────────────────────────────────────────────────────────╮
+│  4) LABORATORIO                                                          │
+├──────────────────────────────────────────────────────────────────────────┤
+│  4.1)  Identity policies: agregar o quitar permisos directos             │
+│  4.2)  Techos: SCP y permission boundary                                 │
+│  4.3)  Cross-account y resource policies                                 │
+│  4.4)  ABAC: tags de principal y condiciones                             │
+│                                                                          │
+│  0)   Volver al menu anterior                                            │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 El unico modo con una regla de conduccion propia: **el usuario predice primero.**
@@ -276,12 +333,16 @@ inactivos) y anomalias de CloudTrail. Es analisis del estado, no del motor.
 ## 6) Cuenta
 
 ```
-6.1  Diff contra la version commiteada
-6.2  Restaurar la cuenta original
-6.3  Estado completo de la cuenta
-6.4  Correr la suite de tests
-
-0)   Volver al menu anterior
+╭──────────────────────────────────────────────────────────────────────────╮
+│  6) CUENTA                                                               │
+├──────────────────────────────────────────────────────────────────────────┤
+│  6.1)  Diff contra la version commiteada                                 │
+│  6.2)  Restaurar la cuenta original                                      │
+│  6.3)  Estado completo de la cuenta                                      │
+│  6.4)  Correr la suite de tests                                          │
+│                                                                          │
+│  0)   Volver al menu anterior                                            │
+╰──────────────────────────────────────────────────────────────────────────╯
 ```
 
 | Opcion | Comando |
