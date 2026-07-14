@@ -177,7 +177,7 @@ def contexto_peticion(cuenta: dict, nombre_usuario: str, *, mfa=None,
     for clave, valor in usuario.get("Tags", {}).items():
         ctx[f"aws:PrincipalTag/{clave}"] = valor
 
-    ctx.update(extra)   # p.ej. aws:ResourceTag/Proyecto, sts:ExternalId
+    ctx.update(extra)   # por ejemplo aws:ResourceTag/Proyecto, sts:ExternalId
     return ctx
 
 

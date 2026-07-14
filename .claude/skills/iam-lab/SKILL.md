@@ -150,6 +150,22 @@ documento completo de cada policy agrupado por capa (`identity`, `boundary`, `sc
 decision. **Al reportar el resultado, citar la traza**: la gracia no es el Allow/Deny, es que
 policy y que Sid lo produjeron.
 
+Las secciones de la salida de `evaluar` son `PETICION`, `CAPAS EVALUADAS` y `DECISION`.
+
+En `DECISION`, **omitir la traza cuando es redundante**: si es un unico paso que no nombra ninguna
+policy ni ningun Sid (el caso del deny implicito, `Sin ningun Allow que matchee -> deny
+implicito`), ya lo dice el motivo y repetirlo es ruido. Mostrar solo el veredicto.
+
+Cuando la traza **si** nombra policies o Sids, va entera y textual: ahi esta la atribucion, que es
+lo unico que convierte un Allow/Deny en una explicacion. No resumirla nunca en ese caso.
+
+No tocar el texto de la traza en `motor_iam.py`: esto es una regla de presentacion.
+
+La linea `condicion :` de `PETICION` la calcula el propio comando y dice si alguna de las policies
+evaluadas tiene `Condition`. Va incluida en el bloque, sin glosa: es el dato que determina si el
+contexto pesa en esa peticion o es decorado. **No escribir una nota explicando que son las claves
+`aws:*`** salvo que el usuario lo pregunte.
+
 Los ARN completos: el bucket es `arn:aws:s3:::banco-backups`, un objeto es
 `arn:aws:s3:::banco-backups/nomina.xlsx`. Para acciones sin recurso (`iam:CreateUser`,
 `cloudtrail:StopLogging`) usar `"*"`.

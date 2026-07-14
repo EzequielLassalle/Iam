@@ -61,6 +61,22 @@ def construir(cuenta: dict, usuario: str, accion: str, recurso: str, *,
     return pet, capas
 
 
+def statements_con_condicion(capas: dict) -> list:
+    """
+    Que statements de las capas evaluadas llevan Condition, como 'Policy/Sid'.
+
+    El contexto de la peticion (aws:SourceIp, aws:MultiFactorAuthPresent, aws:PrincipalTag/*)
+    solo pesa si alguna Condition lo mira. Sin condiciones, el contexto es decorado.
+    """
+    hallados = []
+    for clave in ("identity", "boundary", "scp", "resource"):
+        for nombre, doc in capas.get(clave) or []:
+            for stmt in doc.get("Statement", []):
+                if stmt.get("Condition"):
+                    hallados.append(f"{nombre}/{stmt.get('Sid', '(sin Sid)')}")
+    return hallados
+
+
 def informe(cuenta: dict, pet: dict, capas: dict) -> str:
     """Peticion, capas que participan y decision con su traza."""
     origen = capas.get("_origen", {})
@@ -77,6 +93,10 @@ def informe(cuenta: dict, pet: dict, capas: dict) -> str:
                  if k in ("aws:MultiFactorAuthPresent", "aws:SourceIp")
                  or k.startswith("aws:PrincipalTag/")}
     lineas.append("  contexto  : " + ", ".join(f"{k}={v}" for k, v in relevante.items()))
+
+    condicionadas = statements_con_condicion(capas)
+    lineas.append("  condicion : " + (", ".join(condicionadas) if condicionadas
+                                      else "ninguna policy evaluada tiene Condition"))
 
     lineas.append("\nCapas evaluadas")
     identity = ", ".join(f"{n} ({origen.get(n, '?')})" for n, _ in capas.get("identity", []))
@@ -99,7 +119,7 @@ def parsear(argv):
         description="Evalua una peticion contra el estado actual de la cuenta.",
     )
     p.add_argument("usuario")
-    p.add_argument("accion", help="p.ej. s3:GetObject")
+    p.add_argument("accion", help="por ejemplo s3:GetObject")
     p.add_argument("recurso", help="ARN completo, o * ")
 
     mfa = p.add_mutually_exclusive_group()
@@ -113,7 +133,7 @@ def parsear(argv):
                    help="evalua el recurso como si viviera en otra cuenta (cross-account)")
     p.add_argument("--ctx", action="append", default=[], metavar="CLAVE=VALOR",
                    help="clave de condicion extra, repetible "
-                        "(p.ej. --ctx aws:ResourceTag/Proyecto=creditos)")
+                        "(por ejemplo --ctx aws:ResourceTag/Proyecto=creditos)")
     return p.parse_args(argv)
 
 
