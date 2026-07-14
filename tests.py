@@ -16,9 +16,12 @@ unica clase de error que un motor de autorizacion no puede permitirse.
 
 from __future__ import annotations
 
+import copy
 import sys
 import traceback
 
+import admin_cuenta as admin
+import simulador
 from auditoria import (cargar_eventos, detectar_anomalias, es_admin,
                        revisar_credenciales)
 from contexto import cargar_cuenta, policies_de_recurso, policies_de_usuario
@@ -484,6 +487,141 @@ def test_detecta_la_actividad_sospechosa():
         "jadmin encadeno CreateUser + AttachUserPolicy + CreateAccessKey"
     assert hay_hallazgo(h, "ip-no-corporativa", "45.133.1.90"), \
         "la IP 45.133.1.90 esta fuera de las redes declaradas"
+
+
+# ---------------------------------------------------------------------------
+# El simulador: la misma decision que el catalogo, por la via generica
+# ---------------------------------------------------------------------------
+
+def test_simulador_reproduce_el_catalogo():
+    """
+    Los escenarios que parten de usuarios reales, evaluados por la via generica del
+    simulador, dan lo mismo que el catalogo.
+
+    Es la prueba de que 'evaluar' no es un camino paralelo con reglas propias: si el
+    simulador y el catalogo divergieran, uno de los dos estaria mintiendo.
+    """
+    casos = [
+        ("cgomez", "s3:DeleteObject", OBJETO_NOMINA, "Deny"),          # esc. 1
+        ("jadmin", "cloudtrail:StopLogging", "*", "Deny"),             # esc. 2
+        ("cgomez", "ec2:TerminateInstances",
+         f"arn:aws:ec2:us-east-1:{ACCOUNT}:instance/i-0abc", "Deny"),  # esc. 3
+    ]
+    for usuario, accion, recurso, esperado in casos:
+        pet, capas = simulador.construir(CUENTA, usuario, accion, recurso)
+        d = evaluar(pet, capas).decision
+        assert d == esperado, f"{usuario} {accion}: esperaba {esperado} y dio {d}"
+
+
+def test_simulador_adjunta_la_resource_policy_del_recurso():
+    """La bucket policy se evalua aunque el llamante no la mencione: la trae el recurso."""
+    _, capas = simulador.construir(CUENTA, "cgomez", "s3:GetObject", OBJETO_NOMINA)
+    assert "resource" in capas, "no adjunto la resource policy del bucket"
+
+    _, sin_rp = simulador.construir(CUENTA, "cgomez", "s3:GetObject",
+                                    "arn:aws:s3:::otro-bucket/x")
+    assert "resource" not in sin_rp, "adjunto una resource policy que no existe"
+
+
+def test_simulador_puede_forzar_el_contexto():
+    """El MFA de la peticion se puede pisar sin tocar la cuenta: es contexto, no estado."""
+    pet, _ = simulador.construir(CUENTA, "cgomez", "s3:GetObject", OBJETO_NOMINA, mfa=False)
+    assert pet["context"]["aws:MultiFactorAuthPresent"] == "false"
+
+
+# ---------------------------------------------------------------------------
+# admin_cuenta: las validaciones son lo que se testea
+# ---------------------------------------------------------------------------
+
+def copia():
+    """Copia de la cuenta para mutar en memoria. Ningun test escribe en disco."""
+    return copy.deepcopy(CUENTA)
+
+
+def rechaza(fn, *args, **kwargs):
+    """True si la mutacion fue rechazada por validacion."""
+    try:
+        fn(*args, **kwargs)
+    except admin.ErrorAdmin:
+        return True
+    return False
+
+
+def test_admin_rechaza_policy_inexistente():
+    """Una policy fantasma en AttachedPolicies rompe la resolucion: hay que atajarla antes."""
+    c = copia()
+    assert rechaza(admin.attach_policy, c, "NoExiste", usuario="cgomez")
+    assert rechaza(admin.crear_usuario, c, "nuevo", policies=["NoExiste"])
+    assert rechaza(admin.set_boundary, c, "cgomez", "NoExiste")
+
+
+def test_admin_rechaza_duplicados():
+    c = copia()
+    assert rechaza(admin.crear_usuario, c, "cgomez")
+    assert rechaza(admin.crear_grupo, c, "Creditos")
+    assert rechaza(admin.crear_policy, c, "S3ReadOnlyBackups", {"Statement": []})
+
+
+def test_admin_rechaza_borrar_una_policy_en_uso():
+    """Borrarla dejaria referencias colgadas en los usuarios y grupos que la tienen."""
+    c = copia()
+    assert rechaza(admin.borrar_policy, c, "S3ReadOnlyBackups")
+    assert "S3ReadOnlyBackups" in c["ManagedPolicies"], "la borro igual"
+
+
+def test_admin_rechaza_documento_invalido():
+    c = copia()
+    assert rechaza(admin.crear_policy, c, "X", {"Statement": [{"Effect": "Quizas"}]})
+    assert rechaza(admin.crear_policy, c, "X", {"Statement": [{"Effect": "Allow"}]})
+    assert rechaza(admin.crear_policy, c, "X", {"no": "tiene statement"})
+
+
+def test_admin_rechaza_resource_policy_sin_principal():
+    """Una resource policy sin Principal no dice a quien le habla: no es una resource policy."""
+    c = copia()
+    doc = {"Statement": [{"Effect": "Allow", "Action": "s3:GetObject",
+                          "Resource": "arn:aws:s3:::x/*"}]}
+    assert rechaza(admin.set_resource_policy, c, "arn:aws:s3:::x", doc)
+
+
+def test_admin_attach_a_grupo_lo_heredan_los_miembros():
+    """El efecto de adjuntar a un grupo se ve en los permisos efectivos de sus miembros."""
+    c = copia()
+    admin.crear_policy(c, "EC2Full", {"Statement": [
+        {"Effect": "Allow", "Action": "ec2:*", "Resource": "*"}]})
+    admin.attach_policy(c, "EC2Full", grupo="Creditos")
+
+    nombres = [n for n, _ in policies_de_usuario(c, "cgomez")["identity"]]
+    assert "EC2Full" in nombres, "cgomez no heredo la policy del grupo"
+
+    d = decision({"action": "ec2:TerminateInstances", "resource": "*"},
+                 policies_de_usuario(c, "cgomez"))
+    assert d == "Allow", f"esperaba Allow tras heredar EC2Full y dio {d}"
+
+
+def test_admin_boundary_recorta_lo_que_la_identity_otorga():
+    """Poner un boundary no otorga nada: solo puede recortar. Es el escenario 4, mutando."""
+    c = copia()
+    admin.attach_policy(c, "AdministratorAccess", usuario="cgomez")
+
+    pet = {"principal": f"arn:aws:iam::{ACCOUNT}:user/cgomez", "action": "iam:CreateUser",
+           "resource": "*", "context": {}}
+    assert decision(pet, policies_de_usuario(c, "cgomez")) == "Allow"
+
+    admin.set_boundary(c, "cgomez", "BoundaryS3ReadOnly")
+    d = decision(pet, policies_de_usuario(c, "cgomez"))
+    assert d == "Deny", f"el boundary no recorto: dio {d}"
+
+
+def test_admin_usuario_nuevo_arranca_sin_permisos():
+    """Un usuario recien creado no puede nada: deny implicito, el punto de partida de IAM."""
+    c = copia()
+    admin.crear_usuario(c, "pasante")
+    capas = policies_de_usuario(c, "pasante")
+    assert capas["identity"] == [], "un usuario nuevo no deberia tener identity policies"
+
+    d = decision({"action": "s3:GetObject", "resource": OBJETO_NOMINA}, capas)
+    assert d == "Deny", f"un usuario sin policies dio {d}"
 
 
 # ---------------------------------------------------------------------------

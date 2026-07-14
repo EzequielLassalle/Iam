@@ -9,8 +9,11 @@ centraliza.
     python main.py                 -> muestra los comandos
     python main.py motor           -> auto-test del motor de evaluacion
     python main.py permisos        -> permisos efectivos de cada usuario y de donde salen
+    python main.py evaluar U A R   -> evalua una peticion suelta contra la cuenta actual
     python main.py escenarios      -> los 6 casos de IAM
     python main.py escenarios -q   -> los mismos, prediciendo el resultado antes de verlo
+    python main.py escenarios 3    -> solo el escenario 3
+    python main.py admin ...       -> modifica la cuenta (subcomandos: admin --help)
     python main.py auditoria       -> el reporte de auditoria de la cuenta
     python main.py datos           -> regenera los JSON de datos
     python main.py test            -> corre la suite de tests
@@ -27,7 +30,9 @@ AQUI = Path(__file__).resolve().parent
 COMANDOS = {
     "motor":      ("motor_iam.py",           "Auto-test del motor de evaluacion"),
     "permisos":   ("contexto.py",            "Permisos efectivos de cada usuario y de donde salen"),
+    "evaluar":    ("simulador.py",           "Evalua una peticion: <usuario> <accion> <recurso>"),
     "escenarios": ("escenarios.py",          "Los casos de IAM (-q para predecir antes de ver)"),
+    "admin":      ("admin_cuenta.py",        "Modifica la cuenta: usuarios, policies, grupos, techos"),
     "auditoria":  ("auditoria.py",           "Auditoria de la cuenta: credenciales y actividad"),
     "datos":      ("datos/generar_datos.py", "Regenera los JSON de la cuenta y de CloudTrail"),
     "test":       ("tests.py",               "Corre la suite de tests"),

@@ -22,8 +22,8 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 
-from contexto import (cargar_cuenta, peticion, policies_de_recurso,
-                      policies_de_usuario)
+from contexto import (cargar_cuenta, cuenta_modificada, peticion,
+                      policies_de_recurso, policies_de_usuario)
 from motor_iam import evaluar
 
 CUENTA = cargar_cuenta()
@@ -245,7 +245,8 @@ def correr(e: Escenario, numero: int, quiz: bool) -> bool:
     Plantea un escenario, lo evalua y atribuye el resultado.
 
     Devuelve True si el motor coincidio con lo esperado. Un False indica un bug en el
-    motor, no una prediccion fallida en modo quiz.
+    motor, no una prediccion fallida en modo quiz -- salvo que la cuenta este modificada,
+    caso en el que el 'esperado' ya no describe el estado que se esta evaluando.
     """
     print("\n" + "=" * 74)
     print(f"ESCENARIO {numero}: {e.titulo}")
@@ -272,7 +273,16 @@ def correr(e: Escenario, numero: int, quiz: bool) -> bool:
 
     ok = resultado.decision == e.esperado
     if not ok:
-        print(f"\n  !! BUG EN EL MOTOR: esperabamos {e.esperado} y dio {resultado.decision}")
+        if cuenta_modificada():
+            # El 'esperado' del catalogo describe la cuenta commiteada. Si el JSON fue
+            # mutado, la discrepancia es el efecto de la mutacion: es el resultado que se
+            # estaba buscando, no una falla.
+            print(f"\n  [!] Dio {resultado.decision} y el catalogo esperaba {e.esperado}, "
+                  "pero la cuenta esta MODIFICADA.")
+            print("      El 'esperado' describe la cuenta original: esto es consecuencia del "
+                  "cambio,\n      no un bug del motor.  (python main.py admin diff)")
+        else:
+            print(f"\n  !! BUG EN EL MOTOR: esperabamos {e.esperado} y dio {resultado.decision}")
     return ok
 
 
@@ -291,11 +301,19 @@ if __name__ == "__main__":
     if quiz:
         print("MODO QUIZ: predecir Allow o Deny antes de ver el resultado.")
 
+    if cuenta_modificada():
+        print("\n[!] La cuenta esta MODIFICADA respecto de la version commiteada: los\n"
+              "    resultados pueden no coincidir con el 'esperado' del catalogo.")
+
     fallos = 0
     for i, e in enumerate(seleccion, start=inicio):
         fallos += not correr(e, i, quiz)
 
     print("\n" + "=" * 74)
-    print(f"{len(seleccion)} escenario(s) corridos. "
-          + ("El motor se comporto como AWS en todos." if not fallos
-             else f"{fallos} discrepancia(s) con lo esperado."))
+    if not fallos:
+        print(f"{len(seleccion)} escenario(s) corridos. El motor se comporto como AWS en todos.")
+    elif cuenta_modificada():
+        print(f"{len(seleccion)} escenario(s) corridos. {fallos} dieron distinto del catalogo, "
+              "por la mutacion de la cuenta.")
+    else:
+        print(f"{len(seleccion)} escenario(s) corridos. {fallos} discrepancia(s) con lo esperado.")

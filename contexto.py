@@ -21,6 +21,7 @@ las que se evaluan las condiciones de las policies.
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
@@ -38,6 +39,26 @@ def cargar_cuenta(ruta: Path = RUTA_CUENTA) -> dict:
             f"No existe {ruta}.\nCorre primero:  python datos/generar_datos.py"
         )
     return json.loads(ruta.read_text(encoding="utf-8"))
+
+
+def cuenta_modificada(ruta: Path = RUTA_CUENTA) -> bool:
+    """
+    True si la cuenta en disco difiere de la version commiteada.
+
+    Distingue una mutacion deliberada (admin_cuenta.py) de un bug: si la cuenta cambio, un
+    resultado distinto del esperado por el catalogo es la consecuencia, no una falla.
+
+    False si no hay repo git o si git no esta disponible: sin baseline no se puede afirmar
+    que haya cambios.
+    """
+    try:
+        r = subprocess.run(
+            ["git", "diff", "--quiet", "--", str(ruta)],
+            cwd=AQUI, capture_output=True, timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return r.returncode == 1     # 0 = sin cambios, 1 = difiere, otro = error de git
 
 
 def buscar_usuario(cuenta: dict, nombre: str) -> dict:
@@ -173,17 +194,68 @@ def peticion(cuenta: dict, usuario: str, action: str, resource: str, **ctx_extra
 
 
 # ---------------------------------------------------------------------------
+# Volcado: el usuario y los documentos de las policies que le aplican
+# ---------------------------------------------------------------------------
+
+def volcar(cuenta: dict, nombre: str) -> dict:
+    """
+    El usuario tal como esta en la cuenta, sus grupos, y el documento completo de cada policy
+    que le aplica, agrupado por capa y con la procedencia de cada una.
+
+    Los grupos van explicitos y no solo como 'origen' de una policy: sin ellos hay que
+    inferir la cadena usuario -> grupo -> policy en vez de leerla.
+
+    Es la vista cruda: lo que hay que leer para explicar una decision del motor.
+    """
+    usuario = buscar_usuario(cuenta, nombre)
+    ctx = policies_de_usuario(cuenta, nombre)
+    origen = ctx["_origen"]
+
+    def capa(clave):
+        return [{"nombre": n, "origen": origen.get(n, clave), "documento": doc}
+                for n, doc in ctx.get(clave, [])]
+
+    grupos = [g for g in cuenta["Groups"] if g["GroupName"] in usuario.get("Groups", [])]
+
+    salida = {
+        "usuario": usuario,
+        "grupos": grupos,
+        "identity": capa("identity"),
+    }
+    salida["boundary"] = capa("boundary") if "boundary" in ctx else []
+    salida["scp"] = capa("scp") if "scp" in ctx else []
+    return salida
+
+
+# ---------------------------------------------------------------------------
 # Demo: que permisos efectivos tiene cada usuario y de donde salen
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    import sys
+
     from motor_iam import evaluar
 
     cuenta = cargar_cuenta()
+
+    args = [a for a in sys.argv[1:] if a != "--json"]
+    como_json = "--json" in sys.argv[1:]
+
+    if como_json:
+        objetivo = args[0] if args else None
+        if objetivo:
+            datos = volcar(cuenta, objetivo)
+        else:
+            datos = [volcar(cuenta, u["UserName"]) for u in cuenta["Users"]]
+        print(json.dumps(datos, indent=2, ensure_ascii=False))
+        sys.exit(0)
+
     print(f"Cuenta {cuenta['AccountId']} -- permisos efectivos por usuario")
     print("=" * 70)
 
-    for u in cuenta["Users"]:
+    seleccion = [buscar_usuario(cuenta, args[0])] if args else cuenta["Users"]
+
+    for u in seleccion:
         nombre = u["UserName"]
         ctx = policies_de_usuario(cuenta, nombre)
         origen = ctx["_origen"]
