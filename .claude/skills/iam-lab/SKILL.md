@@ -151,6 +151,43 @@ pregunta y la traduzco". Cada linea se sostiene sola: nada de "lo mismo, pero...
 | 1.3 | idem + `--mfa` / `--sin-mfa` / `--ip <ip>` / `--ctx clave=valor` |
 | 1.4 | idem + `--cuenta-recurso 222222222222` |
 
+**Pedir los campos siempre con el mismo formato en 1.2, 1.3 y 1.4**: una lista con las opciones
+posibles de cada campo, un campo por linea. No cambiar de estilo entre una opcion y otra. El
+bloque base (1.2) es:
+
+```
+usuario:   mlopez · cgomez · svc-reporting · jadmin · temp-consultor
+accion:    s3:GetObject · s3:DeleteObject · s3:ListBucket · iam:CreateUser · ec2:StartInstances · ec2:TerminateInstances · cloudtrail:StopLogging
+recurso:   arn:aws:s3:::banco-backups/nomina.xlsx · arn:aws:s3:::banco-backups · *
+```
+
+Cerrar siempre con la instruccion de pasarlo en una linea, con un ejemplo.
+
+- **1.3 va en dos pasos**, porque el contexto que tiene sentido forzar depende del usuario:
+  1. Preguntar primero **de que usuario** (los cinco).
+  2. Correr `main.py evaluar <usuario> --forzables` para saber que claves miran sus condiciones,
+     y recien entonces mostrar el bloque. La linea `forzar:` incluye `--mfa`/`--sin-mfa` y `--ip`
+     siempre, mas el `--ctx` **concreto** que devolvio `--forzables` (con el valor que cumple).
+     Si `--forzables` dice que el usuario no tiene condiciones, decirlo: forzar `--ctx` no va a
+     cambiar la decision, y solo quedan `--mfa`/`--ip` para probar (que tampoco mira ninguna
+     policy de esta cuenta).
+
+  ```
+  accion:    (las de arriba)
+  recurso:   (los de arriba)
+  forzar:    --mfa · --sin-mfa · --ip <ip> (redes: 200.45.10.0/24 · 10.10.0.0/16)
+             --ctx aws:ResourceTag/Proyecto=Creditos   (=Creditos cumple para acciones de EC2; otro valor lo deniega)
+  ```
+
+  La aclaracion "para acciones de EC2" no es adorno: la condicion solo rige sobre las acciones de
+  su statement. Copiar la linea `--ctx` **tal como la devuelve `--forzables`**, con el servicio
+  incluido; sin eso, forzar el `--ctx` con una accion de otro servicio no cambia nada y desorienta.
+
+- **1.4** agrega debajo del bloque base:
+  ```
+  cuenta del recurso:   --cuenta-recurso 222222222222
+  ```
+
 En **1.1**, si el usuario no aclara sobre quien, preguntar de cual (o `--json` sin nombre para los
 cinco). La salida trae el bloque del usuario tal como esta en `cuenta_iam.json` y, debajo, el
 documento completo de cada policy agrupado por capa (`identity`, `boundary`, `scp`) con su
