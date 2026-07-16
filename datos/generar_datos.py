@@ -240,6 +240,35 @@ cuenta = {
 
 
 # ---------------------------------------------------------------------------
+# Inventario de recursos: buckets e instancias con sus tags.
+# ---------------------------------------------------------------------------
+# Los tags del recurso son el lado aws:ResourceTag de una condicion ABAC. Con este inventario
+# la evaluacion los toma del recurso real, sin tener que inyectarlos a mano por contexto. Las
+# instancias reparten proyectos a proposito: mlopez (Proyecto=Creditos) puede operar las de
+# Creditos y no las de Seguros/Plataforma, que es el ABAC en accion. Sin random: es un
+# inventario fijo, para que el archivo generado sea identico al versionado.
+
+recursos = {
+    "arn:aws:s3:::banco-backups": {
+        "Tipo": "bucket",
+        "Tags": {"Proyecto": "Creditos", "Clasificacion": "confidencial"},
+    },
+    f"arn:aws:ec2:us-east-1:{ACCOUNT}:instance/i-0credito01": {
+        "Tipo": "instancia", "Tags": {"Proyecto": "Creditos"},
+    },
+    f"arn:aws:ec2:us-east-1:{ACCOUNT}:instance/i-0credito02": {
+        "Tipo": "instancia", "Tags": {"Proyecto": "Creditos"},
+    },
+    f"arn:aws:ec2:us-east-1:{ACCOUNT}:instance/i-0seguros01": {
+        "Tipo": "instancia", "Tags": {"Proyecto": "Seguros"},
+    },
+    f"arn:aws:ec2:us-east-1:{ACCOUNT}:instance/i-0plataforma01": {
+        "Tipo": "instancia", "Tags": {"Proyecto": "Plataforma"},
+    },
+}
+
+
+# ---------------------------------------------------------------------------
 # Eventos de CloudTrail (con anomalias plantadas para el analizador)
 # ---------------------------------------------------------------------------
 
@@ -353,6 +382,7 @@ def escribir(nombre, obj):
 if __name__ == "__main__":
     print("Generando datos simulados de BancoXYZ...")
     escribir("cuenta_iam.json", cuenta)
+    escribir("recursos.json", recursos)
     escribir("eventos_cloudtrail.json", {"Events": eventos})
     print(f"\nListo. {len(usuarios)} usuarios, {len(grupos)} grupos, "
-          f"{len(eventos)} eventos de CloudTrail.")
+          f"{len(recursos)} recursos, {len(eventos)} eventos de CloudTrail.")

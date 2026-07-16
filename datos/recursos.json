@@ -1,0 +1,33 @@
+{
+  "arn:aws:s3:::banco-backups": {
+    "Tipo": "bucket",
+    "Tags": {
+      "Proyecto": "Creditos",
+      "Clasificacion": "confidencial"
+    }
+  },
+  "arn:aws:ec2:us-east-1:111111111111:instance/i-0credito01": {
+    "Tipo": "instancia",
+    "Tags": {
+      "Proyecto": "Creditos"
+    }
+  },
+  "arn:aws:ec2:us-east-1:111111111111:instance/i-0credito02": {
+    "Tipo": "instancia",
+    "Tags": {
+      "Proyecto": "Creditos"
+    }
+  },
+  "arn:aws:ec2:us-east-1:111111111111:instance/i-0seguros01": {
+    "Tipo": "instancia",
+    "Tags": {
+      "Proyecto": "Seguros"
+    }
+  },
+  "arn:aws:ec2:us-east-1:111111111111:instance/i-0plataforma01": {
+    "Tipo": "instancia",
+    "Tags": {
+      "Proyecto": "Plataforma"
+    }
+  }
+}

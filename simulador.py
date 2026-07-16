@@ -323,13 +323,17 @@ def informe(cuenta: dict, pet: dict, capas: dict) -> str:
     lineas.append(f"  principal : {pet['principal']}")
     lineas.append(f"  action    : {pet['action']}")
     lineas.append(f"  resource  : {pet['resource']}")
-    if pet.get("resource_account"):
-        lineas.append(f"  recurso en: cuenta {pet['resource_account']}  <- CROSS-ACCOUNT")
+    cta_p = pet.get("principal_account")
+    cta_r = pet.get("resource_account")
+    if cta_p and cta_r and cta_p != cta_r:
+        lineas.append(f"  cross-acc : principal en {cta_p}, recurso en {cta_r}"
+                      "  <- hacen falta AMBAS puntas")
     ctx = pet.get("context", {})
     relevante = {k: v for k, v in ctx.items()
                  if k in ("aws:MultiFactorAuthPresent", "aws:SourceIp")
                  or k.startswith("aws:PrincipalTag/")}
-    lineas.append("  contexto  : " + ", ".join(f"{k}={v}" for k, v in relevante.items()))
+    lineas.append("  contexto  : "
+                  + (", ".join(f"{k}={v}" for k, v in relevante.items()) or "(sin contexto)"))
 
     condicionadas = statements_con_condicion(capas, pet)
     if not condicionadas:

@@ -138,7 +138,8 @@ pregunta y la traduzco". Cada linea se sostiene sola: nada de "lo mismo, pero...
 │  1.1)  Volcado de un usuario: su JSON y el documento de cada policy      │
 │  1.2)  Evaluar una peticion: USUARIO / ACCION / RECURSO                  │
 │  1.3)  Evaluar forzando el contexto: sin MFA, otra IP, otro tag          │
-│  1.4)  Evaluar en cross-account: el recurso vive en otra cuenta          │
+│  1.4)  Cross-account entrante: otra cuenta accede a un recurso propio    │
+│  1.5)  Recursos a los que un usuario puede acceder                       │
 │                                                                          │
 │  0)   Volver al menu anterior                                            │
 ╰──────────────────────────────────────────────────────────────────────────╯
@@ -149,7 +150,8 @@ pregunta y la traduzco". Cada linea se sostiene sola: nada de "lo mismo, pero...
 | 1.1 | `main.py permisos <usuario> --json` |
 | 1.2 | `main.py evaluar <usuario> <accion> <recurso>` |
 | 1.3 | idem + `--mfa` / `--sin-mfa` / `--ip <ip>` / `--ctx clave=valor` |
-| 1.4 | idem + `--cuenta-recurso 222222222222` |
+| 1.4 | `main.py acceso-externo <accion> <recurso> <cuenta-externa>` |
+| 1.5 | `main.py recursos <usuario> <accion>` |
 
 **Pedir los campos siempre con el mismo formato en 1.2, 1.3 y 1.4**: una lista con las opciones
 posibles de cada campo, un campo por linea. No cambiar de estilo entre una opcion y otra. El
@@ -183,10 +185,27 @@ Cerrar siempre con la instruccion de pasarlo en una linea, con un ejemplo.
   su statement. Copiar la linea `--ctx` **tal como la devuelve `--forzables`**, con el servicio
   incluido; sin eso, forzar el `--ctx` con una accion de otro servicio no cambia nada y desorienta.
 
-- **1.4** agrega debajo del bloque base:
+- **1.4 no elige usuario propio**: el principal es externo. Se asume que la cuenta externa ya le
+  concedio la identity a su usuario, asi que la decision recae en la resource policy del recurso
+  propio ("mi bucket policy, deja entrar a esa cuenta?"). El bloque de campos es distinto:
   ```
-  cuenta del recurso:   --cuenta-recurso 222222222222
+  accion:               s3:GetObject · s3:PutObject · s3:DeleteObject · s3:ListBucket
+  recurso propio:       arn:aws:s3:::banco-backups/nomina.xlsx · arn:aws:s3:::banco-backups
+  cuenta desde donde:   222222222222 (cuenta de auditoria, externa)
   ```
+  El caso que Allow-ea es `s3:GetObject` sobre `banco-backups` desde `222222222222`, porque la
+  bucket policy nombra a esa cuenta. Otra cuenta, u otra accion que la policy no liste, da Deny:
+  tu lado no abre la puerta.
+
+- **1.5** es analisis de acceso efectivo: barre el inventario (`datos/recursos.json`) y evalua la
+  accion contra cada recurso del servicio. No pide recurso: recorre todos. El tag sale del recurso
+  real, asi que el ABAC se reparte solo. Campos:
+  ```
+  usuario:   mlopez · cgomez · svc-reporting · jadmin · temp-consultor
+  accion:    ec2:StartInstances · ec2:StopInstances · s3:GetObject · s3:ListBucket
+  ```
+  El caso que luce el ABAC es `mlopez ec2:StartInstances`: alcanza las instancias de Creditos y no
+  las de Seguros/Plataforma, sin ningun `--ctx`.
 
 En **1.1**, si el usuario no aclara sobre quien, preguntar de cual (o `--json` sin nombre para los
 cinco). La salida trae el bloque del usuario tal como esta en `cuenta_iam.json` y, debajo, el

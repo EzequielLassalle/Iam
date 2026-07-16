@@ -26,6 +26,7 @@ from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
 RUTA_CUENTA = AQUI / "datos" / "cuenta_iam.json"
+RUTA_RECURSOS = AQUI / "datos" / "recursos.json"
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +60,33 @@ def cuenta_modificada(ruta: Path = RUTA_CUENTA) -> bool:
     except (OSError, subprocess.SubprocessError):
         return False
     return r.returncode == 1     # 0 = sin cambios, 1 = difiere, otro = error de git
+
+
+def cargar_recursos(ruta: Path = RUTA_RECURSOS) -> dict:
+    """
+    Inventario de recursos (buckets, instancias) indexado por ARN, con sus tags.
+
+    Devuelve {} si el archivo no existe: sin inventario, el motor funciona igual y los
+    aws:ResourceTag entran solo por contexto explicito, como antes de que existiera.
+    """
+    if not ruta.exists():
+        return {}
+    return json.loads(ruta.read_text(encoding="utf-8"))
+
+
+def tags_de_recurso(arn_recurso: str, recursos: dict = None) -> dict:
+    """
+    Tags del recurso, resolviendo objeto -> contenedor por ARN igual que las resource policies:
+    'arn:aws:s3:::banco-backups/nomina.xlsx' hereda los tags de 'arn:aws:s3:::banco-backups'.
+
+    Son el lado ResourceTag de una condicion ABAC. {} si el recurso no esta en el inventario.
+    """
+    if recursos is None:
+        recursos = cargar_recursos()
+    for arn_dueno, meta in recursos.items():
+        if arn_recurso == arn_dueno or arn_recurso.startswith(arn_dueno + "/"):
+            return meta.get("Tags", {})
+    return {}
 
 
 def buscar_usuario(cuenta: dict, nombre: str) -> dict:
@@ -154,15 +182,17 @@ def policies_de_recurso(cuenta: dict, arn_recurso: str) -> list:
 # ---------------------------------------------------------------------------
 
 def contexto_peticion(cuenta: dict, nombre_usuario: str, *, mfa=None,
-                      ip="200.45.10.5", **extra) -> dict:
+                      ip="200.45.10.5", resource=None, **extra) -> dict:
     """
     Arma las claves de condicion que AWS adjunta a cada peticion.
 
-    Las aws:PrincipalTag/* salen de los tags del usuario: son el lado izquierdo de la
-    comparacion en ABAC.
+    Las aws:PrincipalTag/* salen de los tags del usuario; las aws:ResourceTag/* de los tags
+    del recurso (si 'resource' esta en el inventario). Son los dos lados de una comparacion
+    ABAC.
 
-    mfa e ip se pueden pisar para simular escenarios. El resto de claves
-    (aws:ResourceTag/*, sts:ExternalId...) entran por **extra.
+    mfa e ip se pueden pisar para simular escenarios. Las claves de **extra (lo que en la CLI
+    entra por --ctx) se aplican al final, asi que pisan cualquier ResourceTag del inventario:
+    forzar un valor hipotetico siempre gana sobre el real.
     """
     usuario = buscar_usuario(cuenta, nombre_usuario)
 
@@ -177,7 +207,11 @@ def contexto_peticion(cuenta: dict, nombre_usuario: str, *, mfa=None,
     for clave, valor in usuario.get("Tags", {}).items():
         ctx[f"aws:PrincipalTag/{clave}"] = valor
 
-    ctx.update(extra)   # por ejemplo aws:ResourceTag/Proyecto, sts:ExternalId
+    if resource:
+        for clave, valor in tags_de_recurso(resource).items():
+            ctx[f"aws:ResourceTag/{clave}"] = valor
+
+    ctx.update(extra)   # --ctx: pisa lo anterior (sts:ExternalId, o un ResourceTag hipotetico)
     return ctx
 
 
@@ -189,7 +223,7 @@ def peticion(cuenta: dict, usuario: str, action: str, resource: str, **ctx_extra
         "principal_account": cuenta["AccountId"],
         "action": action,
         "resource": resource,
-        "context": contexto_peticion(cuenta, usuario, **ctx_extra),
+        "context": contexto_peticion(cuenta, usuario, resource=resource, **ctx_extra),
     }
 
 

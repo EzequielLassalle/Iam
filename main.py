@@ -10,6 +10,8 @@ centraliza.
     python main.py motor           -> auto-test del motor de evaluacion
     python main.py permisos        -> permisos efectivos de cada usuario y de donde salen
     python main.py evaluar U A R   -> evalua una peticion suelta contra la cuenta actual
+    python main.py recursos U A    -> sobre que recursos del inventario puede U la accion A
+    python main.py acceso-externo A R C -> cross-account entrante: cuenta C accede al recurso R
     python main.py escenarios      -> los 6 casos de IAM
     python main.py escenarios -q   -> los mismos, prediciendo el resultado antes de verlo
     python main.py escenarios 3    -> solo el escenario 3
@@ -31,6 +33,8 @@ COMANDOS = {
     "motor":      ("motor_iam.py",           "Auto-test del motor de evaluacion"),
     "permisos":   ("contexto.py",            "Permisos efectivos de cada usuario y de donde salen"),
     "evaluar":    ("simulador.py",           "Evalua una peticion: <usuario> <accion> <recurso>"),
+    "recursos":   ("recursos.py",            "Sobre que recursos del inventario puede: <usuario> <accion>"),
+    "acceso-externo": ("acceso_externo.py",  "Cross-account entrante: <accion> <recurso> <cuenta-externa>"),
     "escenarios": ("escenarios.py",          "Los casos de IAM (-q para predecir antes de ver)"),
     "admin":      ("admin_cuenta.py",        "Modifica la cuenta: usuarios, policies, grupos, techos"),
     "auditoria":  ("auditoria.py",           "Auditoria de la cuenta: credenciales y actividad"),

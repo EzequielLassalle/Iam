@@ -21,10 +21,12 @@ import sys
 import traceback
 
 import admin_cuenta as admin
+import recursos as recursos_mod
 import simulador
 from auditoria import (cargar_eventos, detectar_anomalias, es_admin,
                        revisar_credenciales)
-from contexto import cargar_cuenta, policies_de_recurso, policies_de_usuario
+from contexto import (cargar_cuenta, cargar_recursos, peticion,
+                      policies_de_recurso, policies_de_usuario, tags_de_recurso)
 from escenarios import ESCENARIOS
 from motor_iam import accion_coincide, evaluar, recurso_coincide
 
@@ -622,6 +624,53 @@ def test_admin_usuario_nuevo_arranca_sin_permisos():
 
     d = decision({"action": "s3:GetObject", "resource": OBJETO_NOMINA}, capas)
     assert d == "Deny", f"un usuario sin policies dio {d}"
+
+
+# ---------------------------------------------------------------------------
+# Inventario de recursos: el aws:ResourceTag sale del recurso, no del contexto
+# ---------------------------------------------------------------------------
+
+INSTANCIA_CREDITOS = "arn:aws:ec2:us-east-1:111111111111:instance/i-0credito01"
+INSTANCIA_SEGUROS = "arn:aws:ec2:us-east-1:111111111111:instance/i-0seguros01"
+
+
+def test_tags_de_recurso_directo_y_heredado():
+    """Un objeto hereda los tags de su bucket, igual que la resource policy."""
+    assert tags_de_recurso("arn:aws:s3:::banco-backups").get("Proyecto") == "Creditos"
+    assert tags_de_recurso(OBJETO_NOMINA).get("Proyecto") == "Creditos"  # hereda del bucket
+    assert tags_de_recurso("arn:aws:s3:::no-existe") == {}
+
+
+def test_el_resource_tag_se_puebla_desde_el_recurso():
+    """Al armar la peticion, el aws:ResourceTag sale del inventario sin pasarlo por contexto."""
+    pet = peticion(CUENTA, "mlopez", "ec2:StartInstances", INSTANCIA_CREDITOS)
+    assert pet["context"].get("aws:ResourceTag/Proyecto") == "Creditos"
+
+
+def test_ctx_pisa_el_tag_del_recurso():
+    """--ctx (extra) gana sobre el tag real: forzar una hipotesis siempre manda."""
+    pet = peticion(CUENTA, "mlopez", "ec2:StartInstances", INSTANCIA_CREDITOS,
+                   **{"aws:ResourceTag/Proyecto": "Seguros"})
+    assert pet["context"]["aws:ResourceTag/Proyecto"] == "Seguros"
+
+
+def test_abac_sin_ctx_reparte_por_proyecto():
+    """El ABAC decide con el tag real del recurso: mlopez alcanza Creditos y no Seguros."""
+    capas = policies_de_usuario(CUENTA, "mlopez")
+    permite = decision(peticion(CUENTA, "mlopez", "ec2:StartInstances", INSTANCIA_CREDITOS), capas)
+    niega = decision(peticion(CUENTA, "mlopez", "ec2:StartInstances", INSTANCIA_SEGUROS), capas)
+    assert permite == "Allow", f"la instancia de Creditos deberia permitir, dio {permite}"
+    assert niega == "Deny", f"la instancia de Seguros deberia negar, dio {niega}"
+
+
+def test_recursos_accesibles_filtra_por_servicio_y_cuenta():
+    """La consulta barre solo los recursos del servicio de la accion y cuenta los Allow."""
+    recs = cargar_recursos()
+    filas = recursos_mod.accesibles(CUENTA, recs, "mlopez", "ec2:StartInstances")
+    assert all(arn.startswith("arn:aws:ec2:") for _, arn, _, _ in filas)
+    allow = [arn for d, arn, _, _ in filas if d == "Allow"]
+    assert len(allow) == 2, f"mlopez deberia alcanzar 2 instancias de Creditos, alcanzo {len(allow)}"
+    assert all("credito" in arn for arn in allow)
 
 
 # ---------------------------------------------------------------------------
